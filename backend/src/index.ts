@@ -1,3 +1,4 @@
+import './workers/assignmentWorker';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
