@@ -1,3 +1,5 @@
+/// <reference types="multer" />
+
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import pdfParse from 'pdf-parse';
@@ -33,7 +35,7 @@ const CreateAssignmentSchema = z.object({
 });
 
 // POST /api/assignments - Create assignment & enqueue job
-router.post('/', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/', upload.single('file'), async (req: Request & { file?: Express.Multer.File }, res: Response) => {
   try {
     let bodyData: unknown = req.body;
     if (typeof req.body.data === 'string') {
