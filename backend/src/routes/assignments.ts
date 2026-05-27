@@ -1,5 +1,3 @@
-/// <reference types="multer" />
-
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import pdfParse from 'pdf-parse';
@@ -35,7 +33,10 @@ const CreateAssignmentSchema = z.object({
 });
 
 // POST /api/assignments - Create assignment & enqueue job
-router.post('/', upload.single('file'), async (req: Request & { file?: Express.Multer.File }, res: Response) => {
+// Minimal local type for the uploaded file to avoid requiring @types/multer at build-time
+type UploadedFile = { fieldname?: string; originalname?: string; encoding?: string; mimetype?: string; buffer: Buffer; size?: number };
+
+router.post('/', upload.single('file'), async (req: Request & { file?: UploadedFile }, res: Response) => {
   try {
     let bodyData: unknown = req.body;
     if (typeof req.body.data === 'string') {
