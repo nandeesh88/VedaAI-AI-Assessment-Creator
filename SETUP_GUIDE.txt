@@ -1,0 +1,250 @@
+# VedaAI – Step by Step Setup Guide
+
+---
+
+## PART 1: GET YOUR 3 CREDENTIALS
+
+---
+
+### CREDENTIAL 1: MongoDB Atlas (Database)
+
+1. Go to: https://mongodb.com/atlas
+2. Click "Try Free" → Sign up with Google or email
+3. After login → Click "Build a Database"
+4. Choose "M0 FREE" (the free one) → Click "Create"
+5. Username: make one (e.g. vedauser) → Password: make one → Click "Create User"
+   ⚠️ SAVE THIS PASSWORD
+6. Click "Add My Current IP Address" → Click "Finish and Close"
+7. Click "Connect" on your cluster → "Drivers" → Copy the string
+
+It looks like:
+  mongodb+srv://vedauser:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+
+8. Edit it: replace <password> with your actual password, and add /vedaai before the ?:
+  mongodb+srv://vedauser:yourpassword@cluster0.xxxxx.mongodb.net/vedaai?retryWrites=true&w=majority
+
+That's your MONGODB_URI ✅
+
+---
+
+### CREDENTIAL 2: Upstash Redis (Cache + Queue)
+
+1. Go to: https://upstash.com
+2. Click "Start for free" → Sign up with Google
+3. After login → Click "Create Database"
+4. Name: vedaai-redis → Region: pick closest to you → Click "Create"
+5. Scroll down to "Connect" section
+6. You'll see a URL that starts with: rediss://default:...
+7. Copy the full URL
+
+That's your REDIS_URL ✅
+
+---
+
+### CREDENTIAL 3: Anthropic API Key (AI)
+
+1. Go to: https://console.anthropic.com
+2. Sign up or log in
+3. Click "API Keys" in the left sidebar
+4. Click "Create Key" → Name it "vedaai" → Click "Create Key"
+5. Copy the key (starts with sk-ant-...)
+   ⚠️ You only see it once, copy it now
+
+That's your ANTHROPIC_API_KEY ✅
+
+---
+
+## PART 2: SET UP THE PROJECT LOCALLY
+
+---
+
+### Step 1: Extract the ZIP
+
+Extract vedaai-complete.zip somewhere on your computer.
+You'll get a folder called "vedaai" with two subfolders: frontend/ and backend/
+
+---
+
+### Step 2: Set Up Backend .env
+
+1. Go into the backend/ folder
+2. Find the file: .env.example
+3. Make a copy of it and name the copy: .env (no .example)
+4. Open .env in any text editor (Notepad, VS Code, etc.)
+5. Fill in your 3 credentials:
+
+```
+MONGODB_URI=mongodb+srv://vedauser:yourpassword@cluster0.xxxxx.mongodb.net/vedaai?retryWrites=true&w=majority
+REDIS_URL=rediss://default:yourpassword@your-endpoint.upstash.io:6380
+ANTHROPIC_API_KEY=sk-ant-api03-...
+PORT=4000
+FRONTEND_URL=http://localhost:3000
+NODE_ENV=development
+```
+
+Save the file.
+
+---
+
+### Step 3: Set Up Frontend .env
+
+1. Go into the frontend/ folder
+2. Find the file: .env.example
+3. Make a copy and name it: .env.local
+4. Open .env.local — leave it exactly as is:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_WS_URL=ws://localhost:4000
+```
+
+Save the file.
+
+---
+
+### Step 4: Install & Run (3 Terminals)
+
+Open 3 separate terminal/command prompt windows.
+
+**TERMINAL 1 – Backend API Server:**
+```
+cd path/to/vedaai/backend
+npm install
+npm run dev
+```
+Wait until you see: "[Server] Running on http://localhost:4000"
+
+**TERMINAL 2 – Background Worker:**
+```
+cd path/to/vedaai/backend
+npm run worker
+```
+Wait until you see: "[Worker] Assignment worker started"
+
+**TERMINAL 3 – Frontend:**
+```
+cd path/to/vedaai/frontend
+npm install
+npm run dev
+```
+Wait until you see: "ready - started server on localhost:3000"
+
+Now open your browser and go to: http://localhost:3000 ✅
+
+---
+
+## PART 3: DEPLOY FOR FREE
+
+---
+
+### Deploy Backend → Render.com (FREE)
+
+Render IS free for web services (they have a free tier, Railway changed their pricing).
+
+**Step 1: Push code to GitHub first**
+1. Create a GitHub account if you don't have one: https://github.com
+2. Create a new repository called "vedaai"
+3. Upload your vedaai/ folder (drag and drop on GitHub, or use git commands)
+
+**Step 2: Deploy backend on Render**
+1. Go to: https://render.com → Sign up free
+2. Click "New +" → "Web Service"
+3. Connect your GitHub account → Select your vedaai repo
+4. Fill in the settings:
+   - Name: vedaai-backend
+   - Root Directory: backend
+   - Runtime: Node
+   - Build Command: npm install && npm run build
+   - Start Command: node dist/index.js
+5. Scroll down to "Environment Variables" → Add these one by one:
+   - MONGODB_URI = (your atlas string)
+   - REDIS_URL = (your upstash string)
+   - ANTHROPIC_API_KEY = (your key)
+   - PORT = 4000
+   - FRONTEND_URL = https://vedaai-frontend.vercel.app (you'll update this after frontend deploy)
+   - NODE_ENV = production
+6. Click "Create Web Service"
+7. Wait ~3 minutes for it to build
+8. Copy your Render URL: https://vedaai-backend.onrender.com
+
+**Step 3: Deploy worker on Render**
+1. Click "New +" → "Background Worker"
+2. Same GitHub repo
+3. Settings:
+   - Name: vedaai-worker
+   - Root Directory: backend
+   - Build Command: npm install && npm run build
+   - Start Command: node dist/workers/assignmentWorker.js
+4. Add same environment variables as above
+5. Click "Create Background Worker"
+
+---
+
+### Deploy Frontend → Vercel (FREE)
+
+1. Go to: https://vercel.com → Sign up with GitHub
+2. Click "Add New" → "Project"
+3. Import your vedaai GitHub repo
+4. Set Root Directory to: frontend
+5. Add Environment Variables:
+   - NEXT_PUBLIC_API_URL = https://vedaai-backend.onrender.com
+   - NEXT_PUBLIC_WS_URL = wss://vedaai-backend.onrender.com
+6. Click "Deploy"
+7. Wait ~2 minutes
+8. Copy your Vercel URL: https://vedaai-frontend.vercel.app
+
+**After deploy: go back to Render backend service → Environment → update FRONTEND_URL to your Vercel URL → Save (it will redeploy automatically)**
+
+---
+
+## PART 4: PUSH TO GITHUB + SUBMIT
+
+---
+
+### Push Code to GitHub
+
+If you haven't already:
+
+```bash
+# In the vedaai/ root folder
+git init
+git add .
+git commit -m "Initial commit - VedaAI Assignment Creator"
+git remote add origin https://github.com/yourusername/vedaai.git
+git push -u origin main
+```
+
+Or just drag-drop your files on github.com when creating the repo.
+
+---
+
+### Submit
+
+Go to the Google Form: https://docs.google.com/forms/d/e/1FAIpQLSeL19GVvVT8vZrTx67hMWKTXLyJSyhkW5XGyzh7Ppt5w8P1jw/viewform
+
+Fill in:
+- GitHub repo URL: https://github.com/yourusername/vedaai
+- Deployed link: https://vedaai-frontend.vercel.app
+
+---
+
+## TROUBLESHOOTING
+
+**"npm: command not found"**
+→ Install Node.js from https://nodejs.org (download LTS version)
+
+**Backend says "MongooseError: connection failed"**
+→ Check your MONGODB_URI is correct and has /vedaai before the ?
+→ Check MongoDB Atlas Network Access has 0.0.0.0/0 allowed
+
+**Backend says "Redis connection error"**
+→ Check REDIS_URL is copied correctly from Upstash (full URL including password)
+
+**Frontend shows blank page or "fetch failed"**
+→ Make sure all 3 terminals are running
+→ Check .env.local has the correct API URL
+
+**Render free tier note:**
+→ Free services on Render "sleep" after 15 min of no traffic
+→ First request after sleeping takes ~30 seconds (this is normal for free tier)
+→ To avoid this, upgrade to Render's $7/month plan, or just warn the evaluator
